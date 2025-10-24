@@ -32,6 +32,7 @@ public class AuthenticationController {
 
     @PostMapping("/sign-in")
     public ResponseEntity<UserDTO> signIn(@RequestBody AuthorizationRequest authorizationRequest) {
+
         UserDTO signedIn = authenticationService.signIn(authorizationRequest);
 
         return ResponseEntity.status(HttpStatus.OK).body(signedIn);

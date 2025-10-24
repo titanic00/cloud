@@ -183,6 +183,81 @@ public class ResourceService {
         }
     }
 
+    /*
+       Since there is no traditional way to move or rename an object from one place to another,
+       we will copy the object from the source directory to the destination directory
+       and then delete it from the source directory.
+     */
+    public MinioObjectDTO moveOrRenameResource(String from, String to) {
+        try {
+            User user = userRepository.findByUsername(authContext.getUserDetails().getUsername());
+
+            if (from.startsWith("/")) {
+                from = from.substring(1);
+            }
+            String objectName = String.format(rootFolderName, user.getId()) + from;
+
+            if (to.startsWith("/")) {
+                to = to.substring(1);
+            }
+            String pathTo = String.format(rootFolderName, user.getId()) + to;
+
+            if (pathTo.endsWith("/")) {
+                pathTo += MinioObjectUtil.getFileNameFromObjectName(objectName);
+            }
+
+            validateMoveConditions(objectName, pathTo);
+
+            // copy all objects from directory
+            if (MinioObjectUtil.isDir(objectName)) {
+                Iterable<Result<Item>> items = minioClient.listObjects(
+                        ListObjectsArgs.builder()
+                                .bucket(bucketName)
+                                .prefix(objectName)
+                                .recursive(true)
+                                .build()
+                );
+
+                for (Result<Item> item : items) {
+                    {
+                        String newPath = pathTo + item.get().objectName().substring(objectName.length());
+
+                        minioClient.copyObject(
+                                CopyObjectArgs.builder()
+                                        .bucket(bucketName)
+                                        .object(newPath)
+                                        .source(CopySource.builder()
+                                                .bucket(bucketName)
+                                                .object(item.get().objectName())
+                                                .build())
+                                        .build());
+                    }
+                }
+            }
+            // copy normal object
+            else {
+                minioClient.copyObject(
+                        CopyObjectArgs.builder()
+                                .bucket(bucketName)
+                                .object(pathTo)
+                                .source(CopySource.builder()
+                                        .bucket(bucketName)
+                                        .object(objectName)
+                                        .build())
+                                .build()
+                );
+            }
+
+            deleteResource(from);
+
+            return buildMinioObjectDTO(pathTo);
+        } catch (ValidationErrorException | UnauthorizedException | NotFoundException | AlreadyExistsException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new UnidentifiedErrorException("Unknown error, please try again.");
+        }
+    }
+
     public boolean resourceExists(String objectName) throws Exception {
         try {
             minioClient.statObject(
@@ -273,6 +348,28 @@ public class ResourceService {
 
         if (!directoryExists(objectName)) {
             throw new NotFoundException("Object doesn't exist.");
+        }
+    }
+
+    public void validateMoveConditions(String objectName, String pathTo) throws Exception {
+        if (!MinioObjectUtil.validatePath(objectName) || !MinioObjectUtil.validatePath(pathTo)) {
+            throw new ValidationErrorException("Invalid path.");
+        }
+
+        if (!directoryExists(MinioObjectUtil.getResourceFullPath(objectName))) {
+            throw new ValidationErrorException("Path doesn't exist.");
+        }
+
+        if (!resourceExists(objectName) && !MinioObjectUtil.isDir(objectName)) {
+            throw new NotFoundException("Object to copy doesn't exist.");
+        }
+
+        if (!directoryExists(objectName) && MinioObjectUtil.isDir(objectName)) {
+            throw new NotFoundException("Directory to copy doesn't exist.");
+        }
+
+        if (resourceExists(pathTo) || directoryExists(pathTo)) {
+            throw new AlreadyExistsException("Object in the destination folder already exists.");
         }
     }
 

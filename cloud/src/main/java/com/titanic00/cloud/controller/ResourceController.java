@@ -59,4 +59,9 @@ public class ResourceController {
                     .contentType(MediaType.APPLICATION_OCTET_STREAM).body(resource);
         }
     }
+
+    @GetMapping("/move")
+    public MinioObjectDTO moveResource(@RequestParam String from, @RequestParam String to) {
+        return resourceService.moveOrRenameResource(from, to);
+    }
 }

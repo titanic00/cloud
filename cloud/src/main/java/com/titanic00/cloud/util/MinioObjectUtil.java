@@ -117,6 +117,11 @@ public class MinioObjectUtil {
         return fullPath.substring(lastButOneIdx + 1, fullPath.lastIndexOf("/") + 1);
     }
 
+    // return full path to the resource directory including root directory
+    public static String getResourceFullPath(String fullPath) {
+        return fullPath.substring(0, fullPath.lastIndexOf("/") + 1);
+    }
+
     // return last nested directory and subdirectories without including root directory
     public static String formatSourceDirectory(String fullPath, String parentFolder) {
         return fullPath.substring(fullPath.indexOf(parentFolder));

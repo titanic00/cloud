@@ -3,8 +3,6 @@ package com.titanic00.cloud.controller;
 import com.titanic00.cloud.dto.UserDTO;
 import com.titanic00.cloud.dto.request.AuthorizationRequest;
 import com.titanic00.cloud.service.AuthenticationService;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,9 +31,9 @@ public class AuthenticationController {
     }
 
     @PostMapping("/sign-in")
-    public ResponseEntity<UserDTO> signIn(@RequestBody AuthorizationRequest authorizationRequest,
-                                          HttpServletRequest request,
-                                          HttpServletResponse response) {
-        return null;
+    public ResponseEntity<UserDTO> signIn(@RequestBody AuthorizationRequest authorizationRequest) {
+        UserDTO signedIn = authenticationService.signIn(authorizationRequest);
+
+        return ResponseEntity.status(HttpStatus.OK).body(signedIn);
     }
 }

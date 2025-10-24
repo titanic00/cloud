@@ -82,6 +82,49 @@ public class ResourceService {
         }
     }
 
+    public void deleteResource(String path) {
+        try {
+            User user = userRepository.findByUsername(authContext.getUserDetails().getUsername());
+
+            if (path.startsWith("/")) {
+                path = path.substring(1);
+            }
+            String objectName = String.format(rootFolderName, user.getId()) + path;
+
+            validateResourceAndPathConditions(objectName);
+
+            if (MinioObjectUtil.isDir(objectName)) {
+                Iterable<Result<Item>> items = minioClient.listObjects(
+                        ListObjectsArgs.builder()
+                                .bucket(bucketName)
+                                .prefix(objectName)
+                                .recursive(true)
+                                .build()
+                );
+
+                for (Result<Item> item : items) {
+                    minioClient.removeObject(
+                            RemoveObjectArgs.builder()
+                                    .bucket(bucketName)
+                                    .object(item.get().objectName())
+                                    .build()
+                    );
+                }
+            } else {
+                minioClient.removeObject(
+                        RemoveObjectArgs.builder()
+                                .bucket(bucketName)
+                                .object(objectName)
+                                .build()
+                );
+            }
+        } catch (ValidationErrorException | UnauthorizedException | NotFoundException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new UnidentifiedErrorException("Unknown error, please try again.");
+        }
+    }
+
     public boolean resourceExists(String objectName) throws Exception {
         try {
             minioClient.statObject(

@@ -32,4 +32,10 @@ public class ResourceController {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(objectDTO);
     }
+
+    @DeleteMapping("")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteResource(@RequestParam String path) {
+        resourceService.deleteResource(path);
+    }
 }

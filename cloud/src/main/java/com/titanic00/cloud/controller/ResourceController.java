@@ -2,7 +2,11 @@ package com.titanic00.cloud.controller;
 
 import com.titanic00.cloud.dto.MinioObjectDTO;
 import com.titanic00.cloud.service.ResourceService;
+import com.titanic00.cloud.util.MinioObjectUtil;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -37,5 +41,22 @@ public class ResourceController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteResource(@RequestParam String path) {
         resourceService.deleteResource(path);
+    }
+
+    @GetMapping("/download")
+    public ResponseEntity<?> downloadResource(@RequestParam String path) {
+        if (MinioObjectUtil.isDir(path)) {
+            byte[] zip = resourceService.downloadResources(path);
+
+            return ResponseEntity.status(HttpStatus.OK)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"download.zip\"")
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM).body(zip);
+        } else {
+            Resource resource = resourceService.downloadResource(path);
+
+            return ResponseEntity.status(HttpStatus.OK)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + MinioObjectUtil.getFileNameFromObjectName(path) + "\"")
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM).body(resource);
+        }
     }
 }

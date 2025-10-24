@@ -14,10 +14,13 @@ import io.minio.errors.ErrorResponseException;
 import io.minio.messages.Item;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 
 @Service
 public class ResourceService {
@@ -125,6 +128,61 @@ public class ResourceService {
         }
     }
 
+    public Resource downloadResource(String path) {
+        try {
+            User user = userRepository.findByUsername(authContext.getUserDetails().getUsername());
+
+            if (path.startsWith("/")) {
+                path = path.substring(1);
+            }
+            String objectName = String.format(rootFolderName, user.getId()) + path;
+
+            validateResourceAndPathConditions(objectName);
+
+            InputStream stream = minioClient.getObject(
+                    GetObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(objectName)
+                            .build()
+            );
+
+            return new InputStreamResource(stream);
+        } catch (ValidationErrorException | UnauthorizedException | NotFoundException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new UnidentifiedErrorException("Unknown error, please try again.");
+        }
+    }
+
+    public byte[] downloadResources(String path) {
+        try {
+            User user = userRepository.findByUsername(authContext.getUserDetails().getUsername());
+
+            if (path.startsWith("/")) {
+                path = path.substring(1);
+            }
+            String fullPath = String.format(rootFolderName, user.getId()) + path;
+
+            validateDirectoryAndPathConditions(fullPath);
+
+            String parentFolder = MinioObjectUtil.getParentDirectoryPath(fullPath);
+
+            Iterable<Result<Item>> items = minioClient.listObjects(
+                    ListObjectsArgs.builder()
+                            .bucket(bucketName)
+                            .prefix(fullPath)
+                            .recursive(true)
+                            .build()
+            );
+
+            return MinioObjectUtil.toZip(items, parentFolder);
+        } catch (ValidationErrorException | UnauthorizedException | NotFoundException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new UnidentifiedErrorException("Unknown error, please try again.");
+        }
+    }
+
     public boolean resourceExists(String objectName) throws Exception {
         try {
             minioClient.statObject(
@@ -205,6 +263,16 @@ public class ResourceService {
 
         if (!directoryExists(objectName) && MinioObjectUtil.isDir(objectName)) {
             throw new NotFoundException("Directory doesn't exist.");
+        }
+    }
+
+    public void validateDirectoryAndPathConditions(String objectName) {
+        if (!MinioObjectUtil.validatePath(objectName)) {
+            throw new ValidationErrorException("Invalid path.");
+        }
+
+        if (!directoryExists(objectName)) {
+            throw new NotFoundException("Object doesn't exist.");
         }
     }
 

@@ -1,7 +1,13 @@
 package com.titanic00.cloud.util;
 
+import io.minio.Result;
+import io.minio.messages.Item;
+
+import java.io.ByteArrayOutputStream;
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 public class MinioObjectUtil {
 
@@ -95,5 +101,41 @@ public class MinioObjectUtil {
             ci.next();
         }
         return String.format("%.1f %cB", bytes / 1000.0, ci.current());
+    }
+
+    // return path to parent directory without including root directory
+    public static String getParentDirectoryPath(String fullPath) {
+        int lastButOneIdx;
+
+        for (int i = fullPath.lastIndexOf("/") - 1; ; i--) {
+            if (fullPath.toCharArray()[i] == '/') {
+                lastButOneIdx = i;
+                break;
+            }
+        }
+
+        return fullPath.substring(lastButOneIdx + 1, fullPath.lastIndexOf("/") + 1);
+    }
+
+    // return last nested directory and subdirectories without including root directory
+    public static String formatSourceDirectory(String fullPath, String parentFolder) {
+        return fullPath.substring(fullPath.indexOf(parentFolder));
+
+    }
+
+    public static byte[] toZip(Iterable<Result<Item>> items, String parentFolder) throws Exception {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        try (ZipOutputStream zipOut = new ZipOutputStream(baos)) {
+
+            for (Result<Item> item : items) {
+                ZipEntry entry = new ZipEntry(formatSourceDirectory(item.get().objectName(), parentFolder));
+                zipOut.putNextEntry(entry);
+            }
+
+            zipOut.closeEntry();
+        }
+
+        return baos.toByteArray();
     }
 }

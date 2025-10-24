@@ -31,14 +31,16 @@ public class AuthenticationService {
     private final AuthenticationManager authenticationManager;
     private final SecurityContextHolderStrategy securityContextHolderStrategy;
     private final SecurityContextRepository securityContextRepository;
+    private final ResourceService resourceService;
 
     public AuthenticationService(UserRepository userRepository,
                                  PasswordEncoder passwordEncoder,
                                  AuthenticationManager authenticationManager,
-                                 SecurityContextRepository securityContextRepository) {
+                                 SecurityContextRepository securityContextRepository, ResourceService resourceService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
+        this.resourceService = resourceService;
         this.securityContextHolderStrategy = SecurityContextHolder.getContextHolderStrategy();
         this.securityContextRepository = securityContextRepository;
     }
@@ -59,6 +61,8 @@ public class AuthenticationService {
                     .username(authorizationRequest.getUsername())
                     .password(passwordEncoder.encode(authorizationRequest.getPassword()))
                     .build());
+
+            resourceService.createUserRootFolder(user.getId());
 
             storeAuthenticationToSession(authorizationRequest, request, response);
 

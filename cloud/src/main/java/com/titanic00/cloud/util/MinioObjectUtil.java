@@ -5,6 +5,10 @@ import java.text.StringCharacterIterator;
 
 public class MinioObjectUtil {
 
+    // path must end with a "/" or a file name with an extension
+    // symbols "< > : " / \ | ? *" are not allowed
+    public static final String rgx = "^(?:[A-Za-z0-9._\\- ()]+/)*(?:[A-Za-z0-9._\\- ()]+)?$";
+
     public static String buildObjectName(String path, String fileName) {
         // avoid double slash at the beginning and at the end
         if (!path.endsWith("/") && !fileName.startsWith("/")) {
@@ -21,6 +25,10 @@ public class MinioObjectUtil {
 
     public static boolean isDir(String path) {
         return path.endsWith("/");
+    }
+
+    public static boolean validatePath(String path) {
+        return path.matches(rgx);
     }
 
     // return path to the file without including root directory

@@ -11,6 +11,7 @@ import com.titanic00.cloud.repository.UserRepository;
 import com.titanic00.cloud.util.MinioObjectUtil;
 import io.minio.*;
 import io.minio.errors.ErrorResponseException;
+import io.minio.messages.Item;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,25 @@ public class ResourceService {
         this.minioClient = minioClient;
         this.authContext = authContext;
         this.userRepository = userRepository;
+    }
+
+    public MinioObjectDTO getResource(String path) {
+        try {
+            User user = userRepository.findByUsername(authContext.getUserDetails().getUsername());
+
+            if (path.startsWith("/")) {
+                path = path.substring(1);
+            }
+            String objectName = String.format(rootFolderName, user.getId()) + path;
+
+            validateResourceAndPathConditions(objectName);
+
+            return buildMinioObjectDTO(objectName);
+        } catch (ValidationErrorException | UnauthorizedException | NotFoundException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new UnidentifiedErrorException("Unknown error, please try again.");
+        }
     }
 
     public MinioObjectDTO uploadResource(String path, MultipartFile file) {
@@ -80,6 +100,21 @@ public class ResourceService {
         }
     }
 
+    public boolean directoryExists(String path) {
+        Iterable<Result<Item>> items = minioClient.listObjects(
+                ListObjectsArgs.builder()
+                        .bucket(bucketName)
+                        .prefix(path)
+                        .build()
+        );
+
+        if (items.iterator().hasNext()) {
+            return true;
+        }
+
+        return false;
+    }
+
     public MinioObjectDTO buildMinioObjectDTO(String objectName) throws Exception {
         StatObjectResponse statObjectResponse = minioClient.statObject(
                 StatObjectArgs.builder()
@@ -113,6 +148,20 @@ public class ResourceService {
 
         if (resourceExists(objectName)) {
             throw new AlreadyExistsException("Object already exists.");
+        }
+    }
+
+    public void validateResourceAndPathConditions(String objectName) throws Exception {
+        if (!MinioObjectUtil.validatePath(objectName)) {
+            throw new ValidationErrorException("Invalid path.");
+        }
+
+        if (!resourceExists(objectName) && !MinioObjectUtil.isDir(objectName)) {
+            throw new NotFoundException("Object doesn't exist.");
+        }
+
+        if (!directoryExists(objectName) && MinioObjectUtil.isDir(objectName)) {
+            throw new NotFoundException("Directory doesn't exist.");
         }
     }
 

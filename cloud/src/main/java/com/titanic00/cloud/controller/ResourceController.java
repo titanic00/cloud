@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/resource")
 public class ResourceController {
@@ -63,5 +65,10 @@ public class ResourceController {
     @GetMapping("/move")
     public MinioObjectDTO moveResource(@RequestParam String from, @RequestParam String to) {
         return resourceService.moveOrRenameResource(from, to);
+    }
+
+    @GetMapping("/search")
+    public List<MinioObjectDTO> searchResource(@RequestParam String query) {
+        return resourceService.searchResource(query);
     }
 }

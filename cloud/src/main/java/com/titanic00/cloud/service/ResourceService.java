@@ -21,6 +21,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class ResourceService {
@@ -258,6 +260,38 @@ public class ResourceService {
         }
     }
 
+    public List<MinioObjectDTO> searchResource(String query) {
+        try {
+            User user = userRepository.findByUsername(authContext.getUserDetails().getUsername());
+            String userRootFolder = String.format(rootFolderName, user.getId());
+
+            validateQueryConditions(query);
+
+            Iterable<Result<Item>> items = minioClient.listObjects(
+                    ListObjectsArgs.builder()
+                            .bucket(bucketName)
+                            .prefix(userRootFolder)
+                            .recursive(true)
+                            .build()
+            );
+
+            List<MinioObjectDTO> minioObjectDTOs = new ArrayList<>();
+
+            for (Result<Item> item : items) {
+                // ignore user root folder
+                if (item.get().objectName().substring(userRootFolder.length()).contains(query)) {
+                    minioObjectDTOs.add(buildMinioObjectDTO(item.get().objectName()));
+                }
+            }
+
+            return minioObjectDTOs;
+        } catch (ValidationErrorException | UnauthorizedException | NotFoundException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new UnidentifiedErrorException("Unknown error, please try again.");
+        }
+    }
+
     public boolean resourceExists(String objectName) throws Exception {
         try {
             minioClient.statObject(
@@ -370,6 +404,12 @@ public class ResourceService {
 
         if (resourceExists(pathTo) || directoryExists(pathTo)) {
             throw new AlreadyExistsException("Object in the destination folder already exists.");
+        }
+    }
+
+    public void validateQueryConditions(String query) {
+        if (query.isEmpty()) {
+            throw new ValidationErrorException("Invalid query.");
         }
     }
 

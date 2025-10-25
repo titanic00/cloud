@@ -24,19 +24,16 @@ public class ResourceController {
     }
 
     @GetMapping("")
-    public ResponseEntity<MinioObjectDTO> getResource(@RequestParam String path) {
+    public MinioObjectDTO getResource(@RequestParam String path) {
 
-        MinioObjectDTO minioObjectDTO = resourceService.getResource(path);
-
-        return ResponseEntity.status(HttpStatus.OK).body(minioObjectDTO);
+        return resourceService.getResource(path);
     }
 
     @PostMapping("")
-    public ResponseEntity<MinioObjectDTO> uploadResource(@RequestParam String path, @RequestParam("object") MultipartFile file) {
+    @ResponseStatus(HttpStatus.CREATED)
+    public MinioObjectDTO uploadResource(@RequestParam String path, @RequestParam("object") MultipartFile file) {
 
-        MinioObjectDTO objectDTO = resourceService.uploadResource(path, file);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(objectDTO);
+        return resourceService.uploadResource(path, file);
     }
 
     @DeleteMapping("")
@@ -64,18 +61,14 @@ public class ResourceController {
     }
 
     @GetMapping("/move")
-    public ResponseEntity<MinioObjectDTO> moveResource(@RequestParam String from, @RequestParam String to) {
+    public MinioObjectDTO moveResource(@RequestParam String from, @RequestParam String to) {
 
-        MinioObjectDTO minioObjectDTO = resourceService.moveOrRenameResource(from, to);
-
-        return ResponseEntity.status(HttpStatus.OK).body(minioObjectDTO);
+        return resourceService.moveOrRenameResource(from, to);
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<MinioObjectDTO>> searchResource(@RequestParam String query) {
+    public List<MinioObjectDTO> searchResource(@RequestParam String query) {
 
-        List<MinioObjectDTO> minioObjectDTOs = resourceService.searchResource(query);
-
-        return ResponseEntity.status(HttpStatus.OK).body(minioObjectDTOs);
+        return resourceService.searchResource(query);
     }
 }

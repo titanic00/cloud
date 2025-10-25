@@ -6,11 +6,7 @@ import com.titanic00.cloud.service.AuthenticationService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 
@@ -25,22 +21,19 @@ public class AuthenticationController {
     }
 
     @PostMapping("/sign-up")
-    public ResponseEntity<UserDTO> signUp(@RequestBody @Valid AuthorizationRequest authorizationRequest,
-                                          HttpServletRequest request,
-                                          HttpServletResponse response) {
+    @ResponseStatus(HttpStatus.CREATED)
+    public UserDTO signUp(@RequestBody @Valid AuthorizationRequest authorizationRequest,
+                          HttpServletRequest request,
+                          HttpServletResponse response) {
 
-        UserDTO registered = authenticationService.signUp(authorizationRequest, request, response);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(registered);
+        return authenticationService.signUp(authorizationRequest, request, response);
     }
 
     @PostMapping("/sign-in")
-    public ResponseEntity<UserDTO> signIn(@RequestBody AuthorizationRequest authorizationRequest,
-                                          HttpServletRequest request,
-                                          HttpServletResponse response) {
+    public UserDTO signIn(@RequestBody @Valid AuthorizationRequest authorizationRequest,
+                          HttpServletRequest request,
+                          HttpServletResponse response) {
 
-        UserDTO signedIn = authenticationService.signIn(authorizationRequest, request, response);
-
-        return ResponseEntity.status(HttpStatus.OK).body(signedIn);
+        return authenticationService.signIn(authorizationRequest, request, response);
     }
 }

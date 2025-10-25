@@ -1,0 +1,11 @@
+spring:
+  datasource:
+    username: root
+    password: 1234
+minio:
+  url: http://localhost:9000
+  access-key: root
+  secret-key: rootpassword1234
+  bucket:
+    name: user-files
+  root-folder: user-%s-files/

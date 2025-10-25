@@ -103,6 +103,20 @@ public class MinioObjectUtil {
         return String.format("%.1f %cB", bytes / 1000.0, ci.current());
     }
 
+    // return full path to parent directory including root directory
+    public static String getParentDirectoryFullPath(String fullPath) {
+        int lastButOneIdx;
+
+        for (int i = fullPath.lastIndexOf("/") - 1; ; i--) {
+            if (fullPath.toCharArray()[i] == '/') {
+                lastButOneIdx = i;
+                break;
+            }
+        }
+
+        return fullPath.substring(0, lastButOneIdx + 1);
+    }
+
     // return path to parent directory without including root directory
     public static String getParentDirectoryPath(String fullPath) {
         int lastButOneIdx;

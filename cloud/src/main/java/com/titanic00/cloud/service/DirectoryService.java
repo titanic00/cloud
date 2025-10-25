@@ -3,19 +3,18 @@ package com.titanic00.cloud.service;
 import com.titanic00.cloud.context.AuthContext;
 import com.titanic00.cloud.dto.MinioObjectDTO;
 import com.titanic00.cloud.entity.User;
-import com.titanic00.cloud.exception.NotFoundException;
-import com.titanic00.cloud.exception.UnauthorizedException;
-import com.titanic00.cloud.exception.UnidentifiedErrorException;
-import com.titanic00.cloud.exception.ValidationErrorException;
+import com.titanic00.cloud.exception.*;
 import com.titanic00.cloud.repository.UserRepository;
 import com.titanic00.cloud.util.MinioObjectUtil;
 import io.minio.ListObjectsArgs;
 import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
 import io.minio.Result;
 import io.minio.messages.Item;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -83,6 +82,33 @@ public class DirectoryService {
         }
     }
 
+    public MinioObjectDTO createEmptyDirectory(String path) {
+        try {
+            User user = userRepository.findByUsername(authContext.getUserDetails().getUsername());
+            String fullPath = String.format(rootFolderName, user.getId()) + path;
+
+            if (!fullPath.endsWith("/")) {
+                fullPath += "/";
+            }
+
+            validateCreateEmptyDirectoryConditions(fullPath);
+
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(fullPath)
+                            .stream(new ByteArrayInputStream(new byte[]{}), 0, -1)
+                            .build()
+            );
+
+            return resourceService.buildMinioObjectDTO(fullPath);
+        } catch (ValidationErrorException | UnauthorizedException | NotFoundException | AlreadyExistsException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new UnidentifiedErrorException("Unknown error, please try again.");
+        }
+    }
+
     public void validateGetDirectoryInfoConditions(String fullPath) {
         if (!MinioObjectUtil.validatePath(fullPath)) {
             throw new ValidationErrorException("Invalid path.");
@@ -90,6 +116,20 @@ public class DirectoryService {
 
         if (!resourceService.directoryExists(fullPath)) {
             throw new NotFoundException("Directory is empty or doesn't exist.");
+        }
+    }
+
+    public void validateCreateEmptyDirectoryConditions(String fullPath) throws Exception {
+        if (!MinioObjectUtil.validatePath(fullPath)) {
+            throw new ValidationErrorException("Invalid path.");
+        }
+
+        if (!resourceService.directoryExists(MinioObjectUtil.getParentDirectoryFullPath(fullPath))) {
+            throw new NotFoundException("Parent folder doesn't exist");
+        }
+
+        if (resourceService.resourceExists(fullPath)) {
+            throw new AlreadyExistsException("Directory already exists.");
         }
     }
 }

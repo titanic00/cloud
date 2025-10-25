@@ -47,6 +47,7 @@ public class ResourceController {
 
     @GetMapping("/download")
     public ResponseEntity<?> downloadResource(@RequestParam String path) {
+
         if (MinioObjectUtil.isDir(path)) {
             byte[] zip = resourceService.downloadResources(path);
 
@@ -63,12 +64,18 @@ public class ResourceController {
     }
 
     @GetMapping("/move")
-    public MinioObjectDTO moveResource(@RequestParam String from, @RequestParam String to) {
-        return resourceService.moveOrRenameResource(from, to);
+    public ResponseEntity<MinioObjectDTO> moveResource(@RequestParam String from, @RequestParam String to) {
+
+        MinioObjectDTO minioObjectDTO = resourceService.moveOrRenameResource(from, to);
+
+        return ResponseEntity.status(HttpStatus.OK).body(minioObjectDTO);
     }
 
     @GetMapping("/search")
-    public List<MinioObjectDTO> searchResource(@RequestParam String query) {
-        return resourceService.searchResource(query);
+    public ResponseEntity<List<MinioObjectDTO>> searchResource(@RequestParam String query) {
+
+        List<MinioObjectDTO> minioObjectDTOs = resourceService.searchResource(query);
+
+        return ResponseEntity.status(HttpStatus.OK).body(minioObjectDTOs);
     }
 }

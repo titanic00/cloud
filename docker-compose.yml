@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: 1234
-      POSTGRES_DB: cloud_file_storage
+      POSTGRES_DB: cloud
     ports:
       - "5432:5432"
     volumes:
@@ -38,12 +38,12 @@ services:
 
   backend:
     build:
-      context: ./CloudFileStorage
+      context: ./cloud
       dockerfile: Dockerfile
     container_name: backend
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/cloud_file_storage
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/cloud
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: 1234
       SPRING_REDIS_HOST: redis
